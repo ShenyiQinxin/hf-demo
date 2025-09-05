@@ -1,0 +1,10 @@
+.venv
+__pycache__/
+*.py[cod]
+*.egg-info/
+.git
+.gitignore
+.DS_Store
+flagged/log.csv
+notebooks/
+README.md
