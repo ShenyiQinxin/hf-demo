@@ -193,4 +193,4 @@ Now open [http://localhost:8080](http://localhost:8080).
 
 ## ⚖️ License
 
-MIT © 2025 Your Name
+MIT © 2025 Heleina Bell
