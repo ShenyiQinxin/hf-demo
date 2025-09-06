@@ -1,13 +1,3 @@
-# 🤗 Hugging Face Summarizer Demo
-
-[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-Spaces-blue)](https://huggingface.co/spaces/macolulu/demo)
-
-![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-deployable-326CE5?logo=kubernetes)
-![Gradio](https://img.shields.io/badge/Gradio-UI-green?logo=python)
-
-A minimal **text summarization demo** using Hugging Face 🤗 `transformers` + Gradio. Runs locally, in Docker, or on Kubernetes.
-## 📝 Repo Metadata (for Hugging Face Spaces)
 
 ---
 title: Demo 
@@ -23,10 +13,15 @@ license: cc
 
 
 
+# 🤗 Hugging Face Summarizer Demo
 
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-Spaces-blue)](https://huggingface.co/spaces/macolulu/demo)
 
+![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-deployable-326CE5?logo=kubernetes)
+![Gradio](https://img.shields.io/badge/Gradio-UI-green?logo=python)
 
-
+A minimal **text summarization demo** using Hugging Face 🤗 `transformers` + Gradio. Runs locally, in Docker, or on Kubernetes.
 
 
 ## 📦 Features
