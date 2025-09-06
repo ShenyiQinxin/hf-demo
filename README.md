@@ -148,6 +148,15 @@ colima list
 colima stop <dev/ml>
 colima start dev/ml
 colima status ml
+
+# Set current context
+docker context ls
+docker context use colima-ml
+```
+
+---
+## 😈 Actions Local
+```
 ```
 
 ---
