@@ -7,12 +7,8 @@
 ![Gradio](https://img.shields.io/badge/Gradio-UI-green?logo=python)
 
 A minimal **text summarization demo** using Hugging Face 🤗 `transformers` + Gradio. Runs locally, in Docker, or on Kubernetes.
-
----
-
 ## 📝 Repo Metadata (for Hugging Face Spaces)
 
-```yaml
 ---
 title: Demo 
 emoji: 👁️
@@ -24,9 +20,14 @@ app_file: app.py
 pinned: false
 license: cc
 ---
-```
 
----
+
+
+
+
+
+
+
 
 ## 📦 Features
 
