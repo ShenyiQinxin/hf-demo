@@ -8,3 +8,5 @@ __pycache__/
 flagged/log.csv
 notebooks/
 README.md
+.token
+.vscode/

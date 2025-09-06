@@ -1,9 +1,9 @@
 
 ---
 title: Demo 
-emoji: 👁️
-colorFrom: purple
-colorTo: purple
+emoji: ♻️
+colorFrom: pink
+colorTo: pink
 sdk: gradio
 sdk_version: "4.44.1"
 app_file: app.py
@@ -155,11 +155,32 @@ docker context use colima-ml
 ```
 
 ---
-## 😈 Actions Local
-```
+## 😈 Actions Local Dryrun
+```sh
+brew install act
+
+act workflow_dispatch -W .github/workflows/build-and-push.yml \
+  --container-architecture linux/amd64 \
+  -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest \
+  --container-daemon-socket /var/run/docker.sock \
+  -s GITHUB_TOKEN=ghp_your_PAT_with_write_packages
+
 ```
 
 ---
+## 👩🏾‍🔬 Test the image
+```sh
+# Pull the image from the registry
+docker image pull ghcr.io/shenyiqinxin/hugging-face-demo:main
+
+# Run
+docker run --rm -d -p 8080:8080/tcp ghcr.io/shenyiqinxin/hugging-face-demo:main 
+# If the docker responded a container ID, then you are ready to test
+http://localhost:8080/
+```
+---
+
+
 
 ## ☸️ Kubernetes Deployment
 
@@ -182,6 +203,13 @@ Now open [http://localhost:8080](http://localhost:8080).
 
 ---
 
+
+## 💜 Git Issues
+```
+git rm --cached path/to/file
+```
+---
+
 ## 📂 Repo Structure
 
 ```
@@ -198,4 +226,4 @@ Now open [http://localhost:8080](http://localhost:8080).
 
 ## ⚖️ License
 
-MIT © 2025 Heleina Bell
+cc © 2025 Heleina Bell
