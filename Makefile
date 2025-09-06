@@ -1,3 +1,7 @@
+venv:
+	rm -rf .venv
+	python3 -m venv .venv
+	
 install:
 	pip install --upgrade pip && pip install -r requirements.txt
 
@@ -12,5 +16,10 @@ debug:
 	python -m pytest -vv --pdb # Debugger is invoked
 
 
-one-test:
-	python -m pytest -vv tests/test_greeting.py::test_my_name4
+
+
+
+
+
+
+	
