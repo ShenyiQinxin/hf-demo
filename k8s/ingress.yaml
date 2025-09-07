@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hugging-face-demo
+  namespace: hf-demo
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+spec:
+  ingressClassName: traefik         
+  rules:
+    - host: hf-demo.local   # CHANGE: your DNS name
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hugging-face-demo
+                port:
+                  number: 80

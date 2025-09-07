@@ -189,8 +189,8 @@ Manifests are in `k8s/`.
 Deploy:
 
 ```sh
-kubectl create ns demo
-kubectl -n demo apply -f k8s/
+kubectl apply -f k8s/namespace.yaml 
+kubectl -n hf-demo apply -f k8s/
 ```
 
 Port-forward (if no Ingress):
