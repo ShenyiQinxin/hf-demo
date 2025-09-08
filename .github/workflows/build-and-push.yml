@@ -45,6 +45,7 @@ jobs:
 
       # (5) Build & push multi-arch image (amd64, arm64)
       - name: Build and push (multi-arch)
+        id: buildpush
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -78,6 +79,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4 # Checkout the code for manifests
 
+      - name: Show resolved image (debug)
+        run: |
+          echo "IMG='${{ needs.build.outputs.image_ref }}'"
+          if [ -z "${{ needs.build.outputs.image_ref }}" ]; then
+            echo "ERROR: image_ref from build is empty." >&2
+            exit 1
+          fi
+
       - name: kubectl version (sanity) # sanity check that kubectl is installed
         run: kubectl version --client=true 
 
@@ -90,6 +99,8 @@ jobs:
         env:
           IMG: ${{ needs.build.outputs.image_ref }} # get the image ref from build job output
         run: |
+          # Double check again that IMG is not empty
+          [ -n "$IMG" ] || { echo "IMG is empty"; exit 1; }
           kubectl -n hf-demo set image deploy/hugging-face-demo app="$IMG"
           kubectl -n hf-demo rollout status deploy/hugging-face-demo --timeout=120s
 
