@@ -24,16 +24,16 @@ license: cc
 A minimal **text summarization demo** using Hugging Face 🤗 `transformers` + Gradio. Runs locally, in Docker, or on Kubernetes.
 
 
-## 📦 Features
+## ✨ Features
 
-* Summarization pipeline (T5 or BART depending on framework)
-* Simple Gradio UI: paste text → get summary
-* Dockerized with non-root user & healthcheck
-* Ready to deploy to Kubernetes / Rancher
+- Paste text → get a summary via a simple Gradio UI.
+- Containerized, non-root runtime.
+- Probes & manifests ready for Kubernetes.
+- **Multi-arch image** (linux/amd64 + linux/arm64) for Apple Silicon & x86.
 
 ---
 
-## 🖥️ Preparation (Local Dev)
+## 🚀 Quickstart (Local Dev)
 
 ```sh
 # 1. Remove the old virtual env folder
@@ -129,7 +129,7 @@ docker rmi hf-demo:local
 
 ---
 
-## 🖥️ Colima Setup (Optional: Build Docker on macOS without Docker Desktop)
+## 🖥️ Colima Setup (Optionally Build Docker on macOS without Docker Desktop)
 
 ```sh
 # Check your Mac’s CPU, RAM, and disk
@@ -163,7 +163,7 @@ act workflow_dispatch -W .github/workflows/build-and-push.yml \
   --container-architecture linux/amd64 \
   -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest \
   --container-daemon-socket /var/run/docker.sock \
-  -s GITHUB_TOKEN=ghp_your_PAT_with_write_packages
+  -s GITHUB_TOKEN=<ghp_your_PAT_with_write_packages>
 
 ```
 
@@ -189,13 +189,26 @@ Manifests are in `k8s/`.
 Deploy:
 
 ```sh
+# Locally we set DNS by putting hf-demo.local → 127.0.0.1 in /etc/hosts.
+127.0.0.1   hf-demo.local
+
 kubectl apply -f k8s/namespace.yaml 
 kubectl -n hf-demo apply -f k8s/
+kubectl -n hf-demo rollout status deploy/hugging-face-demo
+open http://hf-demo.local/
 ```
 
-- If issue happens, re-validate and test:
+
+- Debugging:
 
 ```sh
+# Ingress:
+# Diff clusters my use either nginx or traefik
+kubectl get ingressclass
+# Pick your real hostname and set it in ingress.yaml:
+ingressClassName: nginx        # or traefik / alb / haproxy, etc.
+host: demo.yourdomain.com  # <-- change this
+
 # sanity-check the tag is multi-arch
 docker buildx imagetools inspect ghcr.io/shenyiqinxin/hugging-face-demo:main
 
@@ -216,7 +229,7 @@ open http://hf-demo.local
 curl -I http://hf-demo.local/
 ```
 
-- More Operations:
+- Useful Operations:
 ```sh
 # Tail logs:
 kubectl -n hf-demo logs deploy/hugging-face-demo -f
@@ -229,6 +242,10 @@ kubectl -n hf-demo describe ingress hugging-face-demo
 
 # Scale 
 kubectl -n hf-demo scale deploy/hugging-face-demo --replicas=2
+
+# Clean up
+kubectl delete ns hf-demo
+
 ```
 ---
 
@@ -243,12 +260,16 @@ git rm --cached path/to/file
 
 ```
 .
-├── app.py              # Gradio app
-├── requirements.txt    # Python dependencies
-├── Dockerfile          # Container build recipe
-├── Makefile            # Helper tasks
-├── k8s/                # Kubernetes manifests
-└── flagged/            # Gradio flagged data
+├── app.py
+├── requirements.txt
+├── Dockerfile
+├── k8s/
+│   ├── namespace.yaml
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── ingress.yaml
+└── flagged/
+
 ```
 
 ---
