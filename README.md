@@ -193,14 +193,43 @@ kubectl apply -f k8s/namespace.yaml
 kubectl -n hf-demo apply -f k8s/
 ```
 
-Port-forward (if no Ingress):
+- If issue happens, re-validate and test:
 
 ```sh
-kubectl -n demo port-forward svc/hf-gradio 8080:80
+# sanity-check the tag is multi-arch
+docker buildx imagetools inspect ghcr.io/shenyiqinxin/hugging-face-demo:main
+
+# Point the Deployment at the fresh image and force a rollout
+kubectl -n hf-demo set image deploy/hugging-face-demo \  app=ghcr.io/shenyiqinxin/hugging-face-demo:main
+kubectl -n hf-demo rollout status deploy/hugging-face-demo
+kubectl -n hf-demo get pods -o wide
+
+# Test via your Ingress host
+kubectl -n hf-demo get ingress
 ```
 
-Now open [http://localhost:8080](http://localhost:8080).
+- Test the endpoint:
 
+```sh
+
+open http://hf-demo.local
+curl -I http://hf-demo.local/
+```
+
+- More Operations:
+```sh
+# Tail logs:
+kubectl -n hf-demo logs deploy/hugging-face-demo -f
+
+# Watch events for debugging:
+kubectl -n hf-demo get events --sort-by=.lastTimestamp | tail -20
+
+# Check ingress routing:
+kubectl -n hf-demo describe ingress hugging-face-demo
+
+# Scale 
+kubectl -n hf-demo scale deploy/hugging-face-demo --replicas=2
+```
 ---
 
 
@@ -226,4 +255,4 @@ git rm --cached path/to/file
 
 ## ⚖️ License
 
-cc © 2025 Heleina Bell
+cc © 2025 
