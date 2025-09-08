@@ -83,10 +83,8 @@ jobs:
 
       - name: Apply K8s manifests # Apply the manifests and ensure they exist
         run: |
-          kubectl apply -f namespace.yaml
-          kubectl apply -f service.yaml
-          kubectl apply -f deployment.yaml
-          kubectl apply -f ingress.yaml
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/
 
       - name: Set image & wait for rollout
         env:
