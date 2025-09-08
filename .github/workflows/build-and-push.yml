@@ -1,58 +1,132 @@
-name: Build and Push Container
+name: Build, Push & Deploy
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*.*.*' ]
-  workflow_dispatch: {}
+    branches: [ main ] # when you push to main
+    tags: [ 'v*.*.*' ] # when you push a tag like v1.2.3
+  workflow_dispatch: {} # also allow manual runs
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    runs-on: ubuntu-latest # runs on the latest Ubuntu VM
+    permissions: # Grant the job 
+      contents: read # read access for checkout
+      packages: write # write access to GHCR
 
     env:
-      IMAGE: ghcr.io/${{ github.repository }}
+      IMAGE: ghcr.io/${{ github.repository }} # e.g. ghcr.io/shenyiqinxin/hugging-face-demo
 
     steps:
-      - uses: actions/checkout@v4
+      # (0) Checkout the code
+      - uses: actions/checkout@v4 
 
-      # (1) Login to GHCR (so we can push)
-      - name: Log in to GHCR
+      # (1) Docker login to GHCR with a temporary token, so we can push images
+      - name: Log in to GHCR 
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # (2) Enable cross-arch emulation for Buildx
+      # (2) Enable cross-arch CPU emulation so we can build arm64 images on amd64 runners (and vice versa)
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # (3) Set up Buildx driver
+      # (3) Set up Docker Buildx driver for multi-arch builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # (4) Labels still come from docker/metadata-action (optional but nice)
+      # (4) Generate Docker image metadata (tags, labels) based on the pushed git refs
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/shenyiqinxin/hugging-face-demo
 
-      # (5) Build & push multi-arch image (amd64 + arm64)
+      # (5) Build & push multi-arch image (amd64, arm64)
       - name: Build and push (multi-arch)
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          # Keep a moving tag for humans and a unique tag for traceability
-          tags: ${{ steps.meta.outputs.tags }}  # uses the LOWERCASED images above
+          # Pushes it to ghcr with tags/labels from metadata step
+          tags: ${{ steps.meta.outputs.tags }}  
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha # uses GitHub Actions cache as a cache source for faster builds
+          cache-to: type=gha,mode=max # pushes the build cache to GitHub Actions
           # Hide the "unknown/unknown" attestation in GHCR listings (optional)
           provenance: false
+
+      # (6) After push, docker export an immutable digest reference to the image, e.g. sha256:...
+      # This stores the sha256 in the job output "image_ref", which is used the exact inage by the deploy job
+      - name: Export image ref (by digest)
+        id: out
+        run: | 
+          echo "image_ref=${{ env.IMAGE }}@${{ steps.buildpush.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+  # =========================
+  # OPTION A: SELF-HOSTED RUNNER (deploys to your local cluster)
+  # - Run a self-hosted runner on your Mac (where Rancher Desktop/minikube/k3d runs)
+  # - No kubeconfig secret needed; it uses your local ~/.kube/config and network
+  # =========================
+  deploy-selfhosted:
+    if: ${{ always() }} # set to needs.build.result == 'success' if you want stricter gating
+    needs: build # runs after build job
+    runs-on: [self-hosted, macOS, X64, local-k8s]   #  you set on your runner
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4 # Checkout the code for manifests
+
+      - name: kubectl version (sanity) # sanity check that kubectl is installed
+        run: kubectl version --client=true 
+
+      - name: Apply K8s manifests # Apply the manifests and ensure they exist
+        run: |
+          kubectl apply -f namespace.yaml
+          kubectl apply -f service.yaml
+          kubectl apply -f deployment.yaml
+          kubectl apply -f ingress.yaml
+
+      - name: Set image & wait for rollout
+        env:
+          IMG: ${{ needs.build.outputs.image_ref }} # get the image ref from build job output
+        run: |
+          kubectl -n hf-demo set image deploy/hugging-face-demo app="$IMG"
+          kubectl -n hf-demo rollout status deploy/hugging-face-demo --timeout=120s
+
+  # =========================
+  # OPTION B: HOSTED RUNNER WITH KUBECONFIG SECRET (deploys to a reachable cluster)
+  # - Use this if your cluster API is reachable from the internet/VPN
+  # - Add repo secret KUBE_CONFIG_B64 = base64 of a kubeconfig scoped to namespace hf-demo
+  # =========================
+  # deploy-hosted:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   environment: production
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Write kubeconfig from secret
+  #       run: |
+  #         echo "${{ secrets.KUBE_CONFIG_B64 }}" | base64 -d > "$HOME/.kubeconfig"
+  #         chmod 600 "$HOME/.kubeconfig"
+  #         echo "KUBECONFIG=$HOME/.kubeconfig" >> $GITHUB_ENV
+  #
+  #     - name: Install kubectl
+  #       uses: azure/setup-kubectl@v4
+  #       with:
+  #         version: 'latest'
+  #
+  #     - name: Apply K8s manifests
+  #       run: |
+  #         kubectl apply -f namespace.yaml
+  #         kubectl apply -f service.yaml
+  #         kubectl apply -f deployment.yaml
+  #         kubectl apply -f ingress.yaml
+  #
+  #     - name: Set image & wait for rollout
+  #       env:
+  #         IMG: ${{ needs.build.outputs.image_ref }}
+  #       run: |
+  #         kubectl -n hf-demo set image deploy/hugging-face-demo app="$IMG"
+  #         kubectl -n hf-demo rollout status deploy/hugging-face-demo --timeout=120s
