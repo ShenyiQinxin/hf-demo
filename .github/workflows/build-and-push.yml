@@ -115,12 +115,18 @@ jobs:
 
       - name: Set image & wait for rollout
         env:
-          IMG: ${{ needs.build.outputs.image_ref }} # get the image ref from build job output
+          IMG: ${{ needs.build.outputs.image_ref }}
         run: |
-          # Double check again that IMG is not empty
           [ -n "$IMG" ] || { echo "IMG is empty"; exit 1; }
           kubectl -n hf-demo set image deploy/hugging-face-demo app="$IMG"
-          kubectl -n hf-demo rollout status deploy/hugging-face-demo --timeout=120s
+          kubectl -n hf-demo get pods -n hf-demo
+          kubectl -n hf-demo rollout status deploy/hugging-face-demo --timeout=5m || {
+            echo "Rollout taking long; showing describe/logs..."
+            kubectl -n hf-demo describe deploy/hugging-face-demo || true
+            kubectl -n hf-demo logs deploy/hugging-face-demo --since=10m || true
+            exit 1
+          }
+
 
   # =========================
   # OPTION B: HOSTED RUNNER WITH KUBECONFIG SECRET (deploys to a reachable cluster)
