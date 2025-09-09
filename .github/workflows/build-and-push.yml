@@ -43,14 +43,14 @@ jobs:
         shell: bash
         run: |
           echo "repo_lc=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-          echo "Repo (lc): ${GITHUB_REPOSITORY,,}"
+          echo "Repo (lc): ghcr.io/${GITHUB_REPOSITORY,,}"
 
       # (4) Generate Docker image metadata (tags, labels) based on the pushed git refs
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ steps.repo.outputs.repo_lc }}
+          images: ${{ steps.repo.outputs.repo_lc }}
 
       # (5) Build & push multi-arch image (amd64, arm64)
       - name: Build and push (multi-arch)
@@ -75,16 +75,18 @@ jobs:
       # (6) After push, docker export an immutable digest reference to the image, e.g. sha256:...
       # This stores the sha256 in the job output "image_ref", which is used the exact inage by the deploy job
       - name: Export image ref (by digest)
-        id: out                                     # <-- REQUIRED id
+        id: out
+        shell: bash
         run: |
+          set -euo pipefail
           DIGEST='${{ steps.buildpush.outputs.digest }}'
           if [ -z "$DIGEST" ]; then
-            echo "ERROR: Buildx did not return a digest. Did the build step have id: buildpush and push: true?" >&2
+            echo "ERROR: Buildx did not return a digest." >&2
             exit 1
           fi
           IMAGE_REF="${{ steps.repo.outputs.repo_lc }}@${DIGEST}"
-          echo "image_ref=${ IMAGE_REF }@${DIGEST}" >> "$GITHUB_OUTPUT"
-          echo "Published image_ref='${ IMAGE_REF }@${DIGEST}'"
+          echo "image_ref=${IMAGE_REF}" >> "$GITHUB_OUTPUT"
+          echo "Published image_ref='${IMAGE_REF}'"
 
   # =========================
   # OPTION A: SELF-HOSTED RUNNER (deploys to your local cluster)
