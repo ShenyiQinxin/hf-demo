@@ -15,6 +15,8 @@ jobs:
 
     env:
       IMAGE: ghcr.io/${{ github.repository }} # e.g. ghcr.io/shenyiqinxin/hugging-face-demo
+    outputs:
+      image_ref: ${{ steps.out.outputs.image_ref }} 
 
     steps:
       # (0) Checkout the code
@@ -41,7 +43,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/shenyiqinxin/hugging-face-demo
+          images: ghcr.io/${{ github.repository }}
 
       # (5) Build & push multi-arch image (amd64, arm64)
       - name: Build and push (multi-arch)
@@ -59,12 +61,22 @@ jobs:
           # Hide the "unknown/unknown" attestation in GHCR listings (optional)
           provenance: false
 
+      # Debug: show the digest that Buildx returned (should be sha256:...)
+      - name: Show build digest (debug)
+        run: echo "buildpush.digest='${{ steps.buildpush.outputs.digest }}'"
+
       # (6) After push, docker export an immutable digest reference to the image, e.g. sha256:...
       # This stores the sha256 in the job output "image_ref", which is used the exact inage by the deploy job
       - name: Export image ref (by digest)
-        id: out
-        run: | 
-          echo "image_ref=${{ env.IMAGE }}@${{ steps.buildpush.outputs.digest }}" >> "$GITHUB_OUTPUT"
+        id: out                                     # <-- REQUIRED id
+        run: |
+          DIGEST='${{ steps.buildpush.outputs.digest }}'
+          if [ -z "$DIGEST" ]; then
+            echo "ERROR: Buildx did not return a digest. Did the build step have id: buildpush and push: true?" >&2
+            exit 1
+          fi
+          echo "image_ref=${{ env.IMAGE }}@${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Published image_ref='${{ env.IMAGE }}@${DIGEST}'"
 
   # =========================
   # OPTION A: SELF-HOSTED RUNNER (deploys to your local cluster)
@@ -72,10 +84,14 @@ jobs:
   # - No kubeconfig secret needed; it uses your local ~/.kube/config and network
   # =========================
   deploy-selfhosted:
-    if: ${{ always() }} # set to needs.build.result == 'success' if you want stricter gating
+    # set to needs.build.result == 'success' if you want stricter gating
+    if: ${{ needs.build.result == 'success' }} 
     needs: build # runs after build job
     runs-on: [self-hosted, macOS, X64, local-k8s]   #  you set on your runner
     environment: dev
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4 # Checkout the code for manifests
 
@@ -86,6 +102,8 @@ jobs:
             echo "ERROR: image_ref from build is empty." >&2
             exit 1
           fi
+      - name: Ensure kubeconfig
+        run: echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
 
       - name: kubectl version (sanity) # sanity check that kubectl is installed
         run: kubectl version --client=true 
